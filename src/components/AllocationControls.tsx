@@ -1,35 +1,36 @@
 import React, { useState, useEffect } from 'react';
-import Slider from 'rc-slider';
+import Slider, { Range } from 'rc-slider';
 import 'rc-slider/assets/index.css';
 import { AllocationSettings } from '../types';
+import './AllocationControls.css';
 
 interface AllocationControlsProps {
   allocations: AllocationSettings;
   onUpdateAllocations: (newAllocations: AllocationSettings) => void;
 }
 
-const AllocationControls: React.FC<AllocationControlsProps> = ({
-  allocations,
-  onUpdateAllocations
-}) => {
+const AllocationControls: React.FC<AllocationControlsProps> = ({ allocations, onUpdateAllocations }) => {
   const [localAllocations, setLocalAllocations] = useState<AllocationSettings>(allocations);
-  const [privateTotal, setPrivateTotal] = useState<number>(100);
   
   // Update local allocations when props change
   useEffect(() => {
     setLocalAllocations(allocations);
   }, [allocations]);
   
-  // Update private total when private allocations change
+  // Verify private allocation sums to 100%
   useEffect(() => {
-    const total = localAllocations.privateAllocation.realEstate +
-                 localAllocations.privateAllocation.infrastructure +
-                 localAllocations.privateAllocation.privateEquity;
-    setPrivateTotal(total);
+    const total = localAllocations.privateAllocation.realEstate + 
+                  localAllocations.privateAllocation.infrastructure + 
+                  localAllocations.privateAllocation.privateEquity;
+    
+    if (Math.abs(total - 100) > 0.01) {
+      console.warn(`Private allocation does not sum to 100%: ${total}%`);
+    }
   }, [localAllocations.privateAllocation]);
   
   // Handle public vs private allocation change
-  const handlePublicPrivateChange = (value: number) => {
+  const handlePublicPrivateChange = (value: number | number[]) => {
+    if (Array.isArray(value)) return; // Ignore array values
     const newAllocations = {
       ...localAllocations,
       publicVsPrivate: value
@@ -39,7 +40,8 @@ const AllocationControls: React.FC<AllocationControlsProps> = ({
   };
   
   // Handle equities vs fixed income allocation change
-  const handleEquitiesFixedIncomeChange = (value: number) => {
+  const handleEquitiesFixedIncomeChange = (value: number | number[]) => {
+    if (Array.isArray(value)) return; // Ignore array values
     const newAllocations = {
       ...localAllocations,
       equitiesVsFixedIncome: value
@@ -49,7 +51,8 @@ const AllocationControls: React.FC<AllocationControlsProps> = ({
   };
   
   // Handle AUD vs FX allocation change
-  const handleAudFxChange = (value: number) => {
+  const handleAudFxChange = (value: number | number[]) => {
+    if (Array.isArray(value)) return; // Ignore array values
     const newAllocations = {
       ...localAllocations,
       audVsFx: value
@@ -59,7 +62,8 @@ const AllocationControls: React.FC<AllocationControlsProps> = ({
   };
   
   // Handle sovereign vs non-sovereign allocation change
-  const handleSovereignNonSovereignChange = (value: number) => {
+  const handleSovereignNonSovereignChange = (value: number | number[]) => {
+    if (Array.isArray(value)) return; // Ignore array values
     const newAllocations = {
       ...localAllocations,
       sovereignVsNonSovereign: value
@@ -68,52 +72,21 @@ const AllocationControls: React.FC<AllocationControlsProps> = ({
     onUpdateAllocations(newAllocations);
   };
   
-  // Handle real estate allocation change
-  const handleRealEstateChange = (value: number) => {
-    // Calculate remaining allocation for other private assets
-    const remaining = 100 - value;
+  // Handle private asset allocation change with multi-handle slider
+  const handlePrivateAssetAllocationChange = (values: number[]) => {
+    if (!Array.isArray(values) || values.length !== 2) return;
     
-    // Distribute remaining allocation proportionally between infrastructure and private equity
-    const currentInfrastructure = localAllocations.privateAllocation.infrastructure;
-    const currentPrivateEquity = localAllocations.privateAllocation.privateEquity;
-    const currentTotal = currentInfrastructure + currentPrivateEquity;
-    
-    let newInfrastructure = currentInfrastructure;
-    let newPrivateEquity = currentPrivateEquity;
-    
-    if (currentTotal > 0) {
-      newInfrastructure = Math.round((currentInfrastructure / currentTotal) * remaining);
-      newPrivateEquity = remaining - newInfrastructure;
-    } else {
-      newInfrastructure = Math.round(remaining / 2);
-      newPrivateEquity = remaining - newInfrastructure;
-    }
-    
-    const newAllocations = {
-      ...localAllocations,
-      privateAllocation: {
-        realEstate: value,
-        infrastructure: newInfrastructure,
-        privateEquity: newPrivateEquity
-      }
-    };
-    
-    setLocalAllocations(newAllocations);
-    onUpdateAllocations(newAllocations);
-  };
-  
-  // Handle infrastructure allocation change
-  const handleInfrastructureChange = (value: number) => {
-    // Calculate remaining allocation for other private assets
-    const realEstate = localAllocations.privateAllocation.realEstate;
-    const remaining = 100 - realEstate - value;
+    // Calculate the three sections based on the two handle positions
+    const realEstate = values[0];
+    const infrastructure = values[1] - values[0];
+    const privateEquity = 100 - values[1];
     
     const newAllocations = {
       ...localAllocations,
       privateAllocation: {
         realEstate,
-        infrastructure: value,
-        privateEquity: remaining
+        infrastructure,
+        privateEquity
       }
     };
     
@@ -124,8 +97,14 @@ const AllocationControls: React.FC<AllocationControlsProps> = ({
   // Format percentage for display
   const formatPercentage = (value: number) => `${value}%`;
   
+  // Calculate the values for the Range slider
+  const privateRangeValues = [
+    localAllocations.privateAllocation.realEstate,
+    localAllocations.privateAllocation.realEstate + localAllocations.privateAllocation.infrastructure
+  ];
+  
   return (
-    <div className="space-y-6">
+    <div className="allocation-controls space-y-6">
       <div>
         <div className="flex justify-between items-center mb-1">
           <label className="text-sm font-medium text-gray-700">Public vs Private</label>
@@ -244,6 +223,8 @@ const AllocationControls: React.FC<AllocationControlsProps> = ({
       
       <div>
         <h3 className="text-sm font-medium text-gray-700 mb-2">Private Assets Allocation</h3>
+        
+        {/* Display the current allocation percentages */}
         <div className="grid grid-cols-3 gap-4 mb-2">
           <div>
             <span className="text-sm text-gray-600">Real Estate:</span>
@@ -259,29 +240,80 @@ const AllocationControls: React.FC<AllocationControlsProps> = ({
           </div>
         </div>
         
-        <div className="h-6 flex rounded-md overflow-hidden">
+        {/* Visualization of the three sections */}
+        <div className="h-8 flex rounded-md overflow-hidden mb-4">
           <div 
             className="bg-blue-400 flex items-center justify-center text-xs text-white"
             style={{ width: `${localAllocations.privateAllocation.realEstate}%` }}
           >
-            RE
+            {localAllocations.privateAllocation.realEstate >= 10 && 'RE'}
           </div>
           <div 
             className="bg-green-400 flex items-center justify-center text-xs text-white"
             style={{ width: `${localAllocations.privateAllocation.infrastructure}%` }}
           >
-            IN
+            {localAllocations.privateAllocation.infrastructure >= 10 && 'IN'}
           </div>
           <div 
             className="bg-purple-400 flex items-center justify-center text-xs text-white"
             style={{ width: `${localAllocations.privateAllocation.privateEquity}%` }}
           >
-            PE
+            {localAllocations.privateAllocation.privateEquity >= 10 && 'PE'}
           </div>
         </div>
-        <div className="flex justify-between text-xs text-gray-500 mt-1">
-          <span>0%</span>
-          <span>100%</span>
+        
+        {/* Range slider with two handles */}
+        <div className="relative pt-1 mb-4">
+          <Range
+            min={0}
+            max={100}
+            value={privateRangeValues}
+            onChange={handlePrivateAssetAllocationChange}
+            pushable={5} // Minimum 5% for each section
+            trackStyle={[
+              { backgroundColor: '#3B82F6', height: 8 }, // Real Estate (blue)
+              { backgroundColor: '#10B981', height: 8 }  // Infrastructure (green)
+            ]}
+            railStyle={{ backgroundColor: '#A855F7', height: 8 }} // Private Equity (purple)
+            handleStyle={[
+              { // First handle (Real Estate/Infrastructure boundary)
+                borderColor: '#3B82F6',
+                backgroundColor: '#3B82F6',
+                height: 16,
+                width: 16,
+                marginTop: -4,
+                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+              },
+              { // Second handle (Infrastructure/Private Equity boundary)
+                borderColor: '#10B981',
+                backgroundColor: '#10B981',
+                height: 16,
+                width: 16,
+                marginTop: -4,
+                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+              }
+            ]}
+          />
+          <div className="flex justify-between text-xs text-gray-500 mt-1">
+            <span>0%</span>
+            <span>100%</span>
+          </div>
+        </div>
+        
+        {/* Legend */}
+        <div className="flex justify-between text-xs text-gray-600">
+          <div className="flex items-center">
+            <div className="w-3 h-3 bg-blue-400 rounded-sm mr-1"></div>
+            <span>Real Estate</span>
+          </div>
+          <div className="flex items-center">
+            <div className="w-3 h-3 bg-green-400 rounded-sm mr-1"></div>
+            <span>Infrastructure</span>
+          </div>
+          <div className="flex items-center">
+            <div className="w-3 h-3 bg-purple-400 rounded-sm mr-1"></div>
+            <span>Private Equity</span>
+          </div>
         </div>
       </div>
     </div>
