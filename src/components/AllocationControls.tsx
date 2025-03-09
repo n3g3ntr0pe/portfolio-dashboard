@@ -77,51 +77,46 @@ const ThreePartSlider: React.FC<{
   }, [isDragging, values, onChange]);
   
   return (
-    <div className="relative h-12 mb-6" ref={containerRef}>
-      {/* Bar container */}
-      <div className="absolute top-0 left-0 right-0 h-8 rounded-md overflow-hidden flex">
-        {/* Real Estate section */}
+    <div className="relative pt-1 mb-4" ref={containerRef}>
+      {/* Track */}
+      <div className="h-8 bg-gray-200 rounded-md">
+        {/* Active track for first section */}
         <div 
-          className="bg-blue-400 flex items-center justify-center text-xs text-white"
-          style={{ width: `${values[0]}%` }}
-        >
-          {values[0] >= 10 && 'RE'}
-        </div>
+          className="absolute top-0 h-8 bg-blue-500 rounded-l-md"
+          style={{ width: `${firstDividerPos}%`, left: '0%' }}
+        />
         
-        {/* Infrastructure section */}
+        {/* Active track for second section */}
         <div 
-          className="bg-green-400 flex items-center justify-center text-xs text-white"
-          style={{ width: `${values[1]}%` }}
-        >
-          {values[1] >= 10 && 'IN'}
-        </div>
-        
-        {/* Private Equity section */}
-        <div 
-          className="bg-purple-400 flex items-center justify-center text-xs text-white"
-          style={{ width: `${values[2]}%` }}
-        >
-          {values[2] >= 10 && 'PE'}
-        </div>
+          className="absolute top-0 h-8 bg-gray-300"
+          style={{ 
+            width: `${secondDividerPos - firstDividerPos}%`, 
+            left: `${firstDividerPos}%` 
+          }}
+        />
       </div>
       
-      {/* Dividers */}
+      {/* Handles */}
       <div 
-        className="absolute top-0 h-8 w-1 bg-white cursor-ew-resize z-10 shadow-md"
+        className="absolute top-0 h-8 w-4 mt-0 -ml-2 flex items-center justify-center cursor-ew-resize z-10"
         style={{ left: `${firstDividerPos}%` }}
         onMouseDown={handleMouseDown(0)}
-      />
+      >
+        <div className="h-4 w-4 bg-blue-500 rounded-full shadow"></div>
+      </div>
       
       <div 
-        className="absolute top-0 h-8 w-1 bg-white cursor-ew-resize z-10 shadow-md"
+        className="absolute top-0 h-8 w-4 mt-0 -ml-2 flex items-center justify-center cursor-ew-resize z-10"
         style={{ left: `${secondDividerPos}%` }}
         onMouseDown={handleMouseDown(1)}
-      />
+      >
+        <div className="h-4 w-4 bg-blue-500 rounded-full shadow"></div>
+      </div>
       
       {/* Labels */}
-      <div className="absolute bottom-0 left-0 right-0 flex justify-between text-xs text-gray-500">
-        <span>0%</span>
-        <span>100%</span>
+      <div className="flex justify-between text-xs text-gray-500 mt-1">
+        <span>0% Real Estate</span>
+        <span>100% Private Equity</span>
       </div>
     </div>
   );
@@ -334,22 +329,13 @@ const AllocationControls: React.FC<AllocationControlsProps> = ({ allocations, on
       </div>
       
       <div>
-        <h3 className="text-sm font-medium text-gray-700 mb-2">Private Assets Allocation</h3>
-        
-        {/* Display the current allocation percentages */}
-        <div className="grid grid-cols-3 gap-4 mb-2">
-          <div>
-            <span className="text-sm text-gray-600">Real Estate:</span>
-            <span className="text-sm font-medium ml-1">{localAllocations.privateAllocation.realEstate}%</span>
-          </div>
-          <div>
-            <span className="text-sm text-gray-600">Infrastructure:</span>
-            <span className="text-sm font-medium ml-1">{localAllocations.privateAllocation.infrastructure}%</span>
-          </div>
-          <div>
-            <span className="text-sm text-gray-600">Private Equity:</span>
-            <span className="text-sm font-medium ml-1">{localAllocations.privateAllocation.privateEquity}%</span>
-          </div>
+        <div className="flex justify-between items-center mb-1">
+          <label className="text-sm font-medium text-gray-700">Private Assets Allocation</label>
+          <span className="text-sm text-gray-600">
+            RE: {localAllocations.privateAllocation.realEstate}% / 
+            IN: {localAllocations.privateAllocation.infrastructure}% / 
+            PE: {localAllocations.privateAllocation.privateEquity}%
+          </span>
         </div>
         
         {/* Custom three-part slider */}
@@ -357,22 +343,6 @@ const AllocationControls: React.FC<AllocationControlsProps> = ({ allocations, on
           values={privateAllocationValues}
           onChange={handlePrivateAssetAllocationChange}
         />
-        
-        {/* Legend */}
-        <div className="flex justify-between text-xs text-gray-600">
-          <div className="flex items-center">
-            <div className="w-3 h-3 bg-blue-400 rounded-sm mr-1"></div>
-            <span>Real Estate</span>
-          </div>
-          <div className="flex items-center">
-            <div className="w-3 h-3 bg-green-400 rounded-sm mr-1"></div>
-            <span>Infrastructure</span>
-          </div>
-          <div className="flex items-center">
-            <div className="w-3 h-3 bg-purple-400 rounded-sm mr-1"></div>
-            <span>Private Equity</span>
-          </div>
-        </div>
       </div>
     </div>
   );
