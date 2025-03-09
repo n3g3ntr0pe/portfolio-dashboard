@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Slider from 'rc-slider';
-import Range from 'rc-slider';
 import 'rc-slider/assets/index.css';
 import { AllocationSettings } from '../types';
 import './AllocationControls.css';
@@ -9,6 +8,124 @@ interface AllocationControlsProps {
   allocations: AllocationSettings;
   onUpdateAllocations: (newAllocations: AllocationSettings) => void;
 }
+
+// Custom component for a three-part slider
+const ThreePartSlider: React.FC<{
+  values: [number, number, number]; // [realEstate, infrastructure, privateEquity]
+  onChange: (values: [number, number, number]) => void;
+}> = ({ values, onChange }) => {
+  const [isDragging, setIsDragging] = useState<number | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  
+  // Calculate divider positions
+  const firstDividerPos = values[0];
+  const secondDividerPos = values[0] + values[1];
+  
+  // Handle mouse down on dividers
+  const handleMouseDown = (index: number) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(index);
+  };
+  
+  // Handle mouse move to update positions
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isDragging === null || !containerRef.current) return;
+      
+      const rect = containerRef.current.getBoundingClientRect();
+      const containerWidth = rect.width;
+      const offsetX = e.clientX - rect.left;
+      
+      // Calculate percentage (0-100)
+      let percentage = Math.max(0, Math.min(100, (offsetX / containerWidth) * 100));
+      
+      // Round to nearest integer
+      percentage = Math.round(percentage);
+      
+      // Update values based on which divider is being dragged
+      if (isDragging === 0) { // First divider (between realEstate and infrastructure)
+        // Ensure minimum sizes (5%)
+        const maxAllowed = 95 - values[2]; // Leave at least 5% for infrastructure
+        percentage = Math.min(percentage, maxAllowed);
+        
+        const newInfrastructure = secondDividerPos - percentage;
+        onChange([percentage, newInfrastructure, values[2]]);
+      } else { // Second divider (between infrastructure and privateEquity)
+        // Ensure minimum sizes (5%)
+        const minAllowed = values[0] + 5; // At least 5% for infrastructure
+        percentage = Math.max(percentage, minAllowed);
+        
+        const newInfrastructure = percentage - values[0];
+        const newPrivateEquity = 100 - percentage;
+        onChange([values[0], newInfrastructure, newPrivateEquity]);
+      }
+    };
+    
+    const handleMouseUp = () => {
+      setIsDragging(null);
+    };
+    
+    if (isDragging !== null) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+    
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, values, onChange]);
+  
+  return (
+    <div className="relative h-12 mb-6" ref={containerRef}>
+      {/* Bar container */}
+      <div className="absolute top-0 left-0 right-0 h-8 rounded-md overflow-hidden flex">
+        {/* Real Estate section */}
+        <div 
+          className="bg-blue-400 flex items-center justify-center text-xs text-white"
+          style={{ width: `${values[0]}%` }}
+        >
+          {values[0] >= 10 && 'RE'}
+        </div>
+        
+        {/* Infrastructure section */}
+        <div 
+          className="bg-green-400 flex items-center justify-center text-xs text-white"
+          style={{ width: `${values[1]}%` }}
+        >
+          {values[1] >= 10 && 'IN'}
+        </div>
+        
+        {/* Private Equity section */}
+        <div 
+          className="bg-purple-400 flex items-center justify-center text-xs text-white"
+          style={{ width: `${values[2]}%` }}
+        >
+          {values[2] >= 10 && 'PE'}
+        </div>
+      </div>
+      
+      {/* Dividers */}
+      <div 
+        className="absolute top-0 h-8 w-1 bg-white cursor-ew-resize z-10 shadow-md"
+        style={{ left: `${firstDividerPos}%` }}
+        onMouseDown={handleMouseDown(0)}
+      />
+      
+      <div 
+        className="absolute top-0 h-8 w-1 bg-white cursor-ew-resize z-10 shadow-md"
+        style={{ left: `${secondDividerPos}%` }}
+        onMouseDown={handleMouseDown(1)}
+      />
+      
+      {/* Labels */}
+      <div className="absolute bottom-0 left-0 right-0 flex justify-between text-xs text-gray-500">
+        <span>0%</span>
+        <span>100%</span>
+      </div>
+    </div>
+  );
+};
 
 const AllocationControls: React.FC<AllocationControlsProps> = ({ allocations, onUpdateAllocations }) => {
   const [localAllocations, setLocalAllocations] = useState<AllocationSettings>(allocations);
@@ -73,21 +190,14 @@ const AllocationControls: React.FC<AllocationControlsProps> = ({ allocations, on
     onUpdateAllocations(newAllocations);
   };
   
-  // Handle private asset allocation change with multi-handle slider
-  const handlePrivateAssetAllocationChange = (values: number[]) => {
-    if (!Array.isArray(values) || values.length !== 2) return;
-    
-    // Calculate the three sections based on the two handle positions
-    const realEstate = values[0];
-    const infrastructure = values[1] - values[0];
-    const privateEquity = 100 - values[1];
-    
+  // Handle private asset allocation change with three-part slider
+  const handlePrivateAssetAllocationChange = (values: [number, number, number]) => {
     const newAllocations = {
       ...localAllocations,
       privateAllocation: {
-        realEstate,
-        infrastructure,
-        privateEquity
+        realEstate: values[0],
+        infrastructure: values[1],
+        privateEquity: values[2]
       }
     };
     
@@ -98,10 +208,11 @@ const AllocationControls: React.FC<AllocationControlsProps> = ({ allocations, on
   // Format percentage for display
   const formatPercentage = (value: number) => `${value}%`;
   
-  // Calculate the values for the Range slider
-  const privateRangeValues = [
+  // Get the three values for the three-part slider
+  const privateAllocationValues: [number, number, number] = [
     localAllocations.privateAllocation.realEstate,
-    localAllocations.privateAllocation.realEstate + localAllocations.privateAllocation.infrastructure
+    localAllocations.privateAllocation.infrastructure,
+    localAllocations.privateAllocation.privateEquity
   ];
   
   return (
@@ -241,65 +352,11 @@ const AllocationControls: React.FC<AllocationControlsProps> = ({ allocations, on
           </div>
         </div>
         
-        {/* Visualization of the three sections */}
-        <div className="h-8 flex rounded-md overflow-hidden mb-4">
-          <div 
-            className="bg-blue-400 flex items-center justify-center text-xs text-white"
-            style={{ width: `${localAllocations.privateAllocation.realEstate}%` }}
-          >
-            {localAllocations.privateAllocation.realEstate >= 10 && 'RE'}
-          </div>
-          <div 
-            className="bg-green-400 flex items-center justify-center text-xs text-white"
-            style={{ width: `${localAllocations.privateAllocation.infrastructure}%` }}
-          >
-            {localAllocations.privateAllocation.infrastructure >= 10 && 'IN'}
-          </div>
-          <div 
-            className="bg-purple-400 flex items-center justify-center text-xs text-white"
-            style={{ width: `${localAllocations.privateAllocation.privateEquity}%` }}
-          >
-            {localAllocations.privateAllocation.privateEquity >= 10 && 'PE'}
-          </div>
-        </div>
-        
-        {/* Range slider with two handles */}
-        <div className="relative pt-1 mb-4">
-          <Range
-            min={0}
-            max={100}
-            value={privateRangeValues}
-            onChange={handlePrivateAssetAllocationChange}
-            pushable={5} // Minimum 5% for each section
-            trackStyle={[
-              { backgroundColor: '#3B82F6', height: 8 }, // Real Estate (blue)
-              { backgroundColor: '#10B981', height: 8 }  // Infrastructure (green)
-            ]}
-            railStyle={{ backgroundColor: '#A855F7', height: 8 }} // Private Equity (purple)
-            handleStyle={[
-              { // First handle (Real Estate/Infrastructure boundary)
-                borderColor: '#3B82F6',
-                backgroundColor: '#3B82F6',
-                height: 16,
-                width: 16,
-                marginTop: -4,
-                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
-              },
-              { // Second handle (Infrastructure/Private Equity boundary)
-                borderColor: '#10B981',
-                backgroundColor: '#10B981',
-                height: 16,
-                width: 16,
-                marginTop: -4,
-                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
-              }
-            ]}
-          />
-          <div className="flex justify-between text-xs text-gray-500 mt-1">
-            <span>0%</span>
-            <span>100%</span>
-          </div>
-        </div>
+        {/* Custom three-part slider */}
+        <ThreePartSlider 
+          values={privateAllocationValues}
+          onChange={handlePrivateAssetAllocationChange}
+        />
         
         {/* Legend */}
         <div className="flex justify-between text-xs text-gray-600">
