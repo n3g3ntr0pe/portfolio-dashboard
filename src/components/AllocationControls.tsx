@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
 import { AllocationSettings } from '../types';
 import './AllocationControls.css';
@@ -8,6 +7,84 @@ interface AllocationControlsProps {
   allocations: AllocationSettings;
   onUpdateAllocations: (newAllocations: AllocationSettings) => void;
 }
+
+// Custom component for a single-handle slider
+const SingleHandleSlider: React.FC<{
+  value: number;
+  onChange: (value: number) => void;
+  leftLabel: string;
+  rightLabel: string;
+}> = ({ value, onChange, leftLabel, rightLabel }) => {
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  
+  // Handle mouse down on handle
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+  
+  // Handle mouse move to update position
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging || !containerRef.current) return;
+      
+      const rect = containerRef.current.getBoundingClientRect();
+      const containerWidth = rect.width;
+      const offsetX = e.clientX - rect.left;
+      
+      // Calculate percentage (0-100)
+      let percentage = Math.max(0, Math.min(100, (offsetX / containerWidth) * 100));
+      
+      // Round to nearest integer
+      percentage = Math.round(percentage);
+      
+      onChange(percentage);
+    };
+    
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+    
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+    
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, onChange]);
+  
+  return (
+    <div className="relative pt-1 mb-4" ref={containerRef}>
+      {/* Track */}
+      <div className="h-8 bg-gray-200 rounded-md">
+        {/* Active track */}
+        <div 
+          className="absolute top-0 h-8 bg-blue-500 rounded-l-md"
+          style={{ width: `${value}%`, left: '0%' }}
+        />
+      </div>
+      
+      {/* Handle */}
+      <div 
+        className="absolute top-0 h-8 w-4 mt-0 -ml-2 flex items-center justify-center cursor-ew-resize z-10"
+        style={{ left: `${value}%` }}
+        onMouseDown={handleMouseDown}
+      >
+        <div className="h-4 w-4 bg-blue-500 rounded-full shadow"></div>
+      </div>
+      
+      {/* Labels */}
+      <div className="flex justify-between text-xs text-gray-500 mt-1">
+        <span>{leftLabel}</span>
+        <span>{rightLabel}</span>
+      </div>
+    </div>
+  );
+};
 
 // Custom component for a three-part slider
 const ThreePartSlider: React.FC<{
@@ -142,8 +219,7 @@ const AllocationControls: React.FC<AllocationControlsProps> = ({ allocations, on
   }, [localAllocations.privateAllocation]);
   
   // Handle public vs private allocation change
-  const handlePublicPrivateChange = (value: number | number[]) => {
-    if (Array.isArray(value)) return; // Ignore array values
+  const handlePublicPrivateChange = (value: number) => {
     const newAllocations = {
       ...localAllocations,
       publicVsPrivate: value
@@ -153,8 +229,7 @@ const AllocationControls: React.FC<AllocationControlsProps> = ({ allocations, on
   };
   
   // Handle equities vs fixed income allocation change
-  const handleEquitiesFixedIncomeChange = (value: number | number[]) => {
-    if (Array.isArray(value)) return; // Ignore array values
+  const handleEquitiesFixedIncomeChange = (value: number) => {
     const newAllocations = {
       ...localAllocations,
       equitiesVsFixedIncome: value
@@ -164,8 +239,7 @@ const AllocationControls: React.FC<AllocationControlsProps> = ({ allocations, on
   };
   
   // Handle AUD vs FX allocation change
-  const handleAudFxChange = (value: number | number[]) => {
-    if (Array.isArray(value)) return; // Ignore array values
+  const handleAudFxChange = (value: number) => {
     const newAllocations = {
       ...localAllocations,
       audVsFx: value
@@ -175,8 +249,7 @@ const AllocationControls: React.FC<AllocationControlsProps> = ({ allocations, on
   };
   
   // Handle sovereign vs non-sovereign allocation change
-  const handleSovereignNonSovereignChange = (value: number | number[]) => {
-    if (Array.isArray(value)) return; // Ignore array values
+  const handleSovereignNonSovereignChange = (value: number) => {
     const newAllocations = {
       ...localAllocations,
       sovereignVsNonSovereign: value
@@ -217,28 +290,12 @@ const AllocationControls: React.FC<AllocationControlsProps> = ({ allocations, on
           <label className="text-sm font-medium text-gray-700">Public vs Private</label>
           <span className="text-sm text-gray-600">{localAllocations.publicVsPrivate}% / {100 - localAllocations.publicVsPrivate}%</span>
         </div>
-        <div className="relative pt-1">
-          <Slider
-            min={0}
-            max={100}
-            value={localAllocations.publicVsPrivate}
-            onChange={handlePublicPrivateChange}
-            trackStyle={{ backgroundColor: '#3B82F6', height: 8 }}
-            railStyle={{ backgroundColor: '#E5E7EB', height: 8 }}
-            handleStyle={{ 
-              borderColor: '#3B82F6', 
-              backgroundColor: '#3B82F6', 
-              height: 16, 
-              width: 16, 
-              marginTop: -4,
-              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
-            }}
-          />
-          <div className="flex justify-between text-xs text-gray-500 mt-1">
-            <span>0% Public</span>
-            <span>100% Public</span>
-          </div>
-        </div>
+        <SingleHandleSlider
+          value={localAllocations.publicVsPrivate}
+          onChange={handlePublicPrivateChange}
+          leftLabel="0% Public"
+          rightLabel="100% Public"
+        />
       </div>
       
       <div>
@@ -246,28 +303,12 @@ const AllocationControls: React.FC<AllocationControlsProps> = ({ allocations, on
           <label className="text-sm font-medium text-gray-700">Equities vs Fixed Income</label>
           <span className="text-sm text-gray-600">{localAllocations.equitiesVsFixedIncome}% / {100 - localAllocations.equitiesVsFixedIncome}%</span>
         </div>
-        <div className="relative pt-1">
-          <Slider
-            min={0}
-            max={100}
-            value={localAllocations.equitiesVsFixedIncome}
-            onChange={handleEquitiesFixedIncomeChange}
-            trackStyle={{ backgroundColor: '#3B82F6', height: 8 }}
-            railStyle={{ backgroundColor: '#E5E7EB', height: 8 }}
-            handleStyle={{ 
-              borderColor: '#3B82F6', 
-              backgroundColor: '#3B82F6', 
-              height: 16, 
-              width: 16, 
-              marginTop: -4,
-              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
-            }}
-          />
-          <div className="flex justify-between text-xs text-gray-500 mt-1">
-            <span>0% Equities</span>
-            <span>100% Equities</span>
-          </div>
-        </div>
+        <SingleHandleSlider
+          value={localAllocations.equitiesVsFixedIncome}
+          onChange={handleEquitiesFixedIncomeChange}
+          leftLabel="0% Equities"
+          rightLabel="100% Equities"
+        />
       </div>
       
       <div>
@@ -275,28 +316,12 @@ const AllocationControls: React.FC<AllocationControlsProps> = ({ allocations, on
           <label className="text-sm font-medium text-gray-700">AUD vs FX Equities</label>
           <span className="text-sm text-gray-600">{localAllocations.audVsFx}% / {100 - localAllocations.audVsFx}%</span>
         </div>
-        <div className="relative pt-1">
-          <Slider
-            min={0}
-            max={100}
-            value={localAllocations.audVsFx}
-            onChange={handleAudFxChange}
-            trackStyle={{ backgroundColor: '#3B82F6', height: 8 }}
-            railStyle={{ backgroundColor: '#E5E7EB', height: 8 }}
-            handleStyle={{ 
-              borderColor: '#3B82F6', 
-              backgroundColor: '#3B82F6', 
-              height: 16, 
-              width: 16, 
-              marginTop: -4,
-              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
-            }}
-          />
-          <div className="flex justify-between text-xs text-gray-500 mt-1">
-            <span>0% AUD</span>
-            <span>100% AUD</span>
-          </div>
-        </div>
+        <SingleHandleSlider
+          value={localAllocations.audVsFx}
+          onChange={handleAudFxChange}
+          leftLabel="0% AUD"
+          rightLabel="100% AUD"
+        />
       </div>
       
       <div>
@@ -304,28 +329,12 @@ const AllocationControls: React.FC<AllocationControlsProps> = ({ allocations, on
           <label className="text-sm font-medium text-gray-700">Sovereign vs Non-Sovereign FI</label>
           <span className="text-sm text-gray-600">{localAllocations.sovereignVsNonSovereign}% / {100 - localAllocations.sovereignVsNonSovereign}%</span>
         </div>
-        <div className="relative pt-1">
-          <Slider
-            min={0}
-            max={100}
-            value={localAllocations.sovereignVsNonSovereign}
-            onChange={handleSovereignNonSovereignChange}
-            trackStyle={{ backgroundColor: '#3B82F6', height: 8 }}
-            railStyle={{ backgroundColor: '#E5E7EB', height: 8 }}
-            handleStyle={{ 
-              borderColor: '#3B82F6', 
-              backgroundColor: '#3B82F6', 
-              height: 16, 
-              width: 16, 
-              marginTop: -4,
-              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
-            }}
-          />
-          <div className="flex justify-between text-xs text-gray-500 mt-1">
-            <span>0% Sovereign</span>
-            <span>100% Sovereign</span>
-          </div>
-        </div>
+        <SingleHandleSlider
+          value={localAllocations.sovereignVsNonSovereign}
+          onChange={handleSovereignNonSovereignChange}
+          leftLabel="0% Sovereign"
+          rightLabel="100% Sovereign"
+        />
       </div>
       
       <div>
