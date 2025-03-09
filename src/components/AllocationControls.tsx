@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import Slider, { Range } from 'rc-slider';
+import Slider from 'rc-slider';
+import Range from 'rc-slider';
 import 'rc-slider/assets/index.css';
 import { AllocationSettings } from '../types';
 import './AllocationControls.css';
