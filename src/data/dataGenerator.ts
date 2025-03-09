@@ -258,10 +258,6 @@ function generateBenchmarkReturns(
       'MSCI World': {
         meanReturn: 0.0075 * scenarioAdj.returnMultiplier,
         volatility: 0.042 * scenarioAdj.volatilityMultiplier * volatilityAdj
-      },
-      'Custom': {
-        meanReturn: 0.006 * scenarioAdj.returnMultiplier,
-        volatility: 0.035 * scenarioAdj.volatilityMultiplier * volatilityAdj
       }
     };
     
@@ -285,8 +281,7 @@ function generateBenchmarkReturns(
     return {
       'Market': { returns: Array(months).fill(0) },
       'S&P500': { returns: Array(months).fill(0) },
-      'MSCI World': { returns: Array(months).fill(0) },
-      'Custom': { returns: Array(months).fill(0) }
+      'MSCI World': { returns: Array(months).fill(0) }
     };
   }
 }
@@ -575,8 +570,7 @@ export function generatePortfolioData(
       benchmarks: {
         'Market': { returns: [] },
         'S&P500': { returns: [] },
-        'MSCI World': { returns: [] },
-        'Custom': { returns: [] }
+        'MSCI World': { returns: [] }
       }
     };
   }

@@ -26,10 +26,23 @@ const SimpleAllocationTreemap: React.FC<SimpleAllocationTreemapProps> = ({
   
   // Get the parent container dimensions
   useEffect(() => {
-    if (svgRef.current) {
-      const { width, height } = svgRef.current.parentElement?.getBoundingClientRect() || { width: 800, height: 600 };
-      setDimensions({ width, height });
-    }
+    const updateDimensions = () => {
+      if (svgRef.current) {
+        const { width, height } = svgRef.current.parentElement?.getBoundingClientRect() || { width: 800, height: 500 };
+        setDimensions({ width, height });
+      }
+    };
+    
+    // Initial update
+    updateDimensions();
+    
+    // Add resize listener
+    window.addEventListener('resize', updateDimensions);
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('resize', updateDimensions);
+    };
   }, [portfolioData]);
   
   // Create the treemap
@@ -40,6 +53,12 @@ const SimpleAllocationTreemap: React.FC<SimpleAllocationTreemapProps> = ({
     
     // Clear previous content
     d3.select(svgRef.current).selectAll('*').remove();
+    
+    // Get actual dimensions
+    const width = dimensions.width;
+    const height = dimensions.height;
+    
+    console.log('Treemap dimensions:', width, height);
     
     // Create tooltip
     const tooltip = d3.select(tooltipRef.current)
@@ -66,7 +85,7 @@ const SimpleAllocationTreemap: React.FC<SimpleAllocationTreemapProps> = ({
     
     // Create treemap layout
     const treemap = d3.treemap<AssetClass | Asset>()
-      .size([dimensions.width, dimensions.height])
+      .size([width, height])
       .paddingOuter(4)
       .paddingTop(20)
       .paddingInner(1)
@@ -77,8 +96,9 @@ const SimpleAllocationTreemap: React.FC<SimpleAllocationTreemapProps> = ({
     
     // Create SVG
     const svg = d3.select(svgRef.current)
-      .attr('width', dimensions.width)
-      .attr('height', dimensions.height);
+      .attr('width', width)
+      .attr('height', height)
+      .attr('viewBox', `0 0 ${width} ${height}`);
     
     // Color scale based on depth
     const colorScale = d3.scaleOrdinal<string>()
@@ -169,8 +189,8 @@ const SimpleAllocationTreemap: React.FC<SimpleAllocationTreemapProps> = ({
     if (showRiskContribution) {
       const legendWidth = 200;
       const legendHeight = 20;
-      const legendX = dimensions.width - legendWidth - 20;
-      const legendY = dimensions.height - legendHeight - 20;
+      const legendX = width - legendWidth - 20;
+      const legendY = height - legendHeight - 20;
       
       // Create gradient
       const defs = svg.append('defs');
@@ -221,7 +241,7 @@ const SimpleAllocationTreemap: React.FC<SimpleAllocationTreemapProps> = ({
   
   return (
     <div className="relative w-full h-full">
-      <svg ref={svgRef} className="w-full h-full"></svg>
+      <svg ref={svgRef} width="100%" height="100%" preserveAspectRatio="xMidYMid meet"></svg>
       <div ref={tooltipRef} className="absolute top-0 left-0 pointer-events-none"></div>
     </div>
   );

@@ -13,8 +13,8 @@ interface PerformanceViewProps {
   portfolioData: PortfolioData;
   selectedTimePeriod: TimePeriod;
   selectedBenchmark: Benchmark;
-  onTimePeriodChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
-  onBenchmarkChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+  onTimePeriodChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+  onBenchmarkChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
 }
 
 const PerformanceView: React.FC<PerformanceViewProps> = ({
@@ -142,6 +142,7 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({
             value={selectedTimePeriod} 
             onChange={onTimePeriodChange}
             className="block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+            disabled={!onTimePeriodChange}
           >
             <option value="1M">1 Month</option>
             <option value="3M">3 Months</option>
@@ -160,11 +161,11 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({
             value={selectedBenchmark} 
             onChange={onBenchmarkChange}
             className="block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+            disabled={!onBenchmarkChange}
           >
             <option value="Market">Market</option>
             <option value="S&P500">S&P 500</option>
             <option value="MSCI World">MSCI World</option>
-            <option value="Custom">Custom</option>
           </select>
         </div>
       </div>

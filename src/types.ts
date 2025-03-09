@@ -2,7 +2,7 @@
 export type TimePeriod = '1M' | '3M' | '6M' | '1Y' | '3Y' | '5Y' | '10Y' | 'YTD';
 
 // Benchmark options
-export type Benchmark = 'Market' | 'S&P500' | 'MSCI World' | 'Custom';
+export type Benchmark = 'Market' | 'S&P500' | 'MSCI World';
 
 // Asset data structure
 export interface Asset {

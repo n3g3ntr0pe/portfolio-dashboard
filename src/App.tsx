@@ -1,5 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
-import Dashboard from './views/Dashboard';
+import { useState, useEffect } from 'react';
 import DataGeneratorControls from './components/DataGeneratorControls';
 import SimpleAllocationTreemap from './components/SimpleAllocationTreemap';
 import RiskAnalysisView from './components/RiskAnalysisView';
@@ -87,11 +86,9 @@ function App() {
   // State for benchmark selection
   const [selectedBenchmark, setSelectedBenchmark] = useState<Benchmark>('Market');
   
-  // State for risk contributions
-  const [riskContributions, setRiskContributions] = useState<RiskContribution[]>([]);
-  
-  // State for calculation steps
-  const [calculationSteps, setCalculationSteps] = useState<CalculationStep[]>([]);
+  // State for risk contributions and calculation steps
+  const [riskContributions, setRiskContributions] = useState<any[]>([]);
+  const [calculationSteps, setCalculationSteps] = useState<any[]>([]);
   
   // State for allocation settings
   const [allocations, setAllocations] = useState<AllocationSettings>(defaultAllocations);
@@ -100,20 +97,6 @@ function App() {
   const [showDataControls, setShowDataControls] = useState<boolean>(true);
   const [showRiskContribution, setShowRiskContribution] = useState<boolean>(false);
   const [showCalculations, setShowCalculations] = useState<boolean>(false);
-  
-  // Handle portfolio data update
-  const handleUpdatePortfolioData = (newData: PortfolioData) => {
-    console.log('Updating portfolio data:', newData);
-    
-    // Preserve data generation parameters if they exist in the current portfolio data
-    const extendedData = newData as ExtendedPortfolioData;
-    if (portfolioData.scenario) extendedData.scenario = portfolioData.scenario;
-    if (portfolioData.volatilityLevel) extendedData.volatilityLevel = portfolioData.volatilityLevel;
-    if (portfolioData.months) extendedData.months = portfolioData.months;
-    
-    setPortfolioData(extendedData);
-    setRiskContributions([]);
-  };
   
   // Handle allocation settings update
   const handleUpdateAllocations = (newAllocations: AllocationSettings) => {
@@ -140,18 +123,6 @@ function App() {
     setSelectedTimePeriod(e.target.value as TimePeriod);
   };
   
-  // Handle risk contribution update
-  const handleUpdateRiskContributions = (contributions: RiskContribution[]) => {
-    console.log('Updating risk contributions:', contributions);
-    setRiskContributions(contributions);
-  };
-  
-  // Handle calculation steps update
-  const handleUpdateCalculationSteps = (steps: CalculationStep[]) => {
-    console.log('Updating calculation steps:', steps);
-    setCalculationSteps(steps);
-  };
-  
   // Toggle data controls
   const toggleDataControls = () => {
     setShowDataControls(prev => !prev);
@@ -164,7 +135,21 @@ function App() {
   
   // Toggle calculations
   const toggleCalculations = () => {
-    setShowCalculations(prev => !prev);
+    setShowCalculations(prev => {
+      const newValue = !prev;
+      
+      // If we're showing calculations, scroll to them after a short delay
+      if (newValue) {
+        setTimeout(() => {
+          const calculationsElement = document.getElementById('calculations-section');
+          if (calculationsElement) {
+            calculationsElement.scrollIntoView({ behavior: 'smooth' });
+          }
+        }, 100);
+      }
+      
+      return newValue;
+    });
   };
   
   // Handle data generation with parameters
@@ -238,70 +223,109 @@ function App() {
               </div>
             )}
             
-            <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="md:col-span-2 bg-white rounded-lg shadow-md p-4">
-                <h2 className="text-lg font-semibold mb-2">Portfolio Allocation</h2>
-                <div className="h-[500px]">
-                  <SimpleAllocationTreemap 
-                    portfolioData={portfolioData} 
-                    showRiskContribution={showRiskContribution}
-                    riskContributions={riskContributions}
-                    allocations={allocations}
-                  />
+            <div className="flex flex-col lg:flex-row gap-6 mb-6">
+              {/* Left column - Portfolio Allocation */}
+              <div className="flex-1">
+                <div className="bg-white rounded-lg shadow-md p-4 h-[600px] flex flex-col">
+                  <h2 className="text-lg font-semibold mb-2">Portfolio Allocation</h2>
+                  <div className="flex-grow">
+                    <SimpleAllocationTreemap 
+                      portfolioData={portfolioData} 
+                      showRiskContribution={showRiskContribution}
+                      riskContributions={riskContributions}
+                      allocations={allocations}
+                    />
+                  </div>
                 </div>
               </div>
               
-              <div className="bg-white rounded-lg shadow-md p-4">
-                <h2 className="text-lg font-semibold mb-2">Allocation Controls</h2>
-                <AllocationControls 
-                  allocations={allocations} 
-                  onUpdateAllocations={handleUpdateAllocations} 
-                />
+              {/* Right column - Analysis Controls and Allocation Controls */}
+              <div className="flex-1 flex flex-col h-[600px]">
+                <div className="bg-white rounded-lg shadow-md p-4 mb-6">
+                  <h2 className="text-lg font-semibold mb-2">Analysis Controls</h2>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Time Period</label>
+                      <select 
+                        value={selectedTimePeriod} 
+                        onChange={handleTimePeriodChange}
+                        className="block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option value="1M">1 Month</option>
+                        <option value="3M">3 Months</option>
+                        <option value="6M">6 Months</option>
+                        <option value="1Y">1 Year</option>
+                        <option value="3Y">3 Years</option>
+                        <option value="5Y">5 Years</option>
+                        <option value="10Y">10 Years</option>
+                        <option value="YTD">Year to Date</option>
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Benchmark</label>
+                      <select 
+                        value={selectedBenchmark} 
+                        onChange={handleBenchmarkChange}
+                        className="block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option value="Market">Market</option>
+                        <option value="S&P500">S&P 500</option>
+                        <option value="MSCI World">MSCI World</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-white rounded-lg shadow-md p-4 flex-grow">
+                  <h2 className="text-lg font-semibold mb-2">Allocation Controls</h2>
+                  <AllocationControls 
+                    allocations={allocations} 
+                    onUpdateAllocations={handleUpdateAllocations} 
+                  />
+                </div>
               </div>
             </div>
             
-            <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+              {/* Performance Analysis */}
               <div className="bg-white rounded-lg shadow-md p-4">
                 <h2 className="text-lg font-semibold mb-2">Performance Analysis</h2>
-                <div className="h-[400px]">
-                  <PerformanceView 
-                    portfolioData={portfolioData} 
-                    selectedTimePeriod={selectedTimePeriod}
-                    selectedBenchmark={selectedBenchmark}
-                    onTimePeriodChange={handleTimePeriodChange}
-                    onBenchmarkChange={handleBenchmarkChange}
-                  />
-                </div>
+                <PerformanceView 
+                  portfolioData={portfolioData}
+                  selectedTimePeriod={selectedTimePeriod}
+                  selectedBenchmark={selectedBenchmark}
+                  onTimePeriodChange={handleTimePeriodChange}
+                  onBenchmarkChange={handleBenchmarkChange}
+                />
               </div>
               
+              {/* Risk Analysis */}
               <div className="bg-white rounded-lg shadow-md p-4">
                 <h2 className="text-lg font-semibold mb-2">Risk Analysis</h2>
-                <div className="h-[400px]">
-                  <RiskAnalysisView 
-                    portfolioData={portfolioData} 
-                    selectedTimePeriod={selectedTimePeriod}
-                    onUpdateRiskContributions={handleUpdateRiskContributions}
-                    onUpdateCalculationSteps={handleUpdateCalculationSteps}
-                  />
-                </div>
+                <RiskAnalysisView 
+                  portfolioData={portfolioData}
+                  selectedTimePeriod={selectedTimePeriod}
+                  onRiskContributionsChange={setRiskContributions}
+                  onCalculationStepsChange={setCalculationSteps}
+                />
               </div>
             </div>
             
+            {/* Time Series Analysis */}
             <div className="mb-6 bg-white rounded-lg shadow-md p-4">
-              <h2 className="text-lg font-semibold mb-2">Historical Performance</h2>
-              <div className="h-[400px]">
-                <SimpleTimeSeriesView 
-                  portfolioData={portfolioData} 
-                  selectedTimePeriod={selectedTimePeriod}
-                  selectedBenchmark={selectedBenchmark}
-                />
-              </div>
+              <h2 className="text-lg font-semibold mb-2">Time Series Analysis</h2>
+              <SimpleTimeSeriesView 
+                portfolioData={portfolioData}
+                selectedTimePeriod={selectedTimePeriod}
+                selectedBenchmark={selectedBenchmark}
+              />
             </div>
             
             {showCalculations && (
-              <div className="mb-6 bg-white rounded-lg shadow-md p-4">
+              <div id="calculations-section" className="bg-white rounded-lg shadow-md p-4 mb-6">
                 <h2 className="text-lg font-semibold mb-2">Risk Calculations</h2>
-                <div className="h-[400px] overflow-auto">
+                <div>
                   <CalculationsView 
                     calculationSteps={calculationSteps} 
                   />
@@ -311,6 +335,10 @@ function App() {
           </>
         )}
       </main>
+      
+      <footer className="bg-gray-200 p-4 text-center text-gray-600 text-sm">
+        Portfolio Dashboard Copyright {new Date().getFullYear()}
+      </footer>
     </div>
   );
 }
