@@ -4,12 +4,13 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --port 4000 --strictPort",
     "dev:default": "vite --port 3000 --strictPort",
     "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@agentdeskai/browser-tools-mcp": "^1.1.0",
     "@types/lodash": "^4.17.16",
     "autoprefixer": "^10.4.16",
     "better-react-mathjax": "^2.1.0",
