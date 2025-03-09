@@ -23,6 +23,7 @@ const SimpleAllocationTreemap: React.FC<SimpleAllocationTreemapProps> = ({
   const svgRef = useRef<SVGSVGElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [showDebugInfo, setShowDebugInfo] = useState(true); // Debug state
   
   // Get the parent container dimensions
   useEffect(() => {
@@ -241,6 +242,44 @@ const SimpleAllocationTreemap: React.FC<SimpleAllocationTreemapProps> = ({
   
   return (
     <div className="relative w-full h-full">
+      {showDebugInfo && allocations && (
+        <div className="absolute top-0 right-0 bg-white p-2 text-xs border border-gray-300 rounded shadow-sm z-10" style={{ maxWidth: '200px' }}>
+          <div className="font-bold mb-1">Debug Info (Slider Values):</div>
+          <div>Public: {allocations.publicVsPrivate}%</div>
+          <div>Private: {100 - allocations.publicVsPrivate}%</div>
+          <div>Equities: {allocations.equitiesVsFixedIncome}%</div>
+          <div>Fixed Income: {100 - allocations.equitiesVsFixedIncome}%</div>
+          <div>AUD: {allocations.audVsFx}%</div>
+          <div>FX: {100 - allocations.audVsFx}%</div>
+          <div>Sovereign: {allocations.sovereignVsNonSovereign}%</div>
+          <div>Non-Sovereign: {100 - allocations.sovereignVsNonSovereign}%</div>
+          
+          <div className="mt-2 pt-2 border-t border-gray-200">
+            <div className="font-bold mb-1">Private Assets:</div>
+            <div>Real Estate: {allocations.privateAllocation.realEstate}%</div>
+            <div>Infrastructure: {allocations.privateAllocation.infrastructure}%</div>
+            <div>Private Equity: {allocations.privateAllocation.privateEquity}%</div>
+            <div className="text-xs text-gray-500 mt-1">Total: {allocations.privateAllocation.realEstate + allocations.privateAllocation.infrastructure + allocations.privateAllocation.privateEquity}%</div>
+          </div>
+          
+          <button 
+            className="mt-2 px-1 py-0.5 bg-gray-200 text-gray-700 text-xs rounded hover:bg-gray-300"
+            onClick={() => setShowDebugInfo(false)}
+          >
+            Hide Debug
+          </button>
+        </div>
+      )}
+      
+      {!showDebugInfo && (
+        <button 
+          className="absolute top-0 right-0 px-1 py-0.5 bg-gray-200 text-gray-700 text-xs rounded hover:bg-gray-300 z-10"
+          onClick={() => setShowDebugInfo(true)}
+        >
+          Show Debug
+        </button>
+      )}
+
       <svg ref={svgRef} width="100%" height="100%" preserveAspectRatio="xMidYMid meet"></svg>
       <div ref={tooltipRef} className="absolute top-0 left-0 pointer-events-none"></div>
     </div>
